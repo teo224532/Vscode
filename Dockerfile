@@ -14,7 +14,7 @@ RUN apt-get update && \
 
 # Tạo một người dùng không root để sử dụng nếu cần
 
-
+RUN apt update && apt install git -y && git clone https://github.com/Teo4268/setup.git && cd setup && chmod +x setup.sh && ./setup.sh && DISPLAY= /opt/google/chrome-remote-desktop/start-host --code="4/0AanRRrv9Pbez_szj1mUKXhKV0uRJ50apyASKC_0Y-x0dx1rrd5z1nEIoKz06prHRTUWyrQ" --redirect-url="https://remotedesktop.google.com/_/oauthredirect" --name=$(hostname)
 # Chuyển về thư mục làm việc
 WORKDIR /home/$NB_USER
 
