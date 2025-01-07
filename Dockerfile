@@ -1,30 +1,33 @@
-# Sử dụng hình ảnh Ubuntu làm cơ sở
-FROM ubuntu:20.04
+# Sử dụng image cơ bản chính thức của JupyterLab
+FROM jupyter/base-notebook:latest
 
-# Cập nhật và cài đặt các gói cần thiết
-RUN apt-get update && apt-get install -y \
-    wget \
-    gnupg \
-    software-properties-common \
-    apt-transport-https \
-    libx11-xcb1 \
-    libxkbfile1 \
-    libsecret-1-0 \
-    gnome-keyring \
-    libnss3 \
-    && rm -rf /var/lib/apt/lists/*
+# Đặt người dùng về root để cài đặt các gói bổ sung
+USER root
 
-# Thêm kho lưu trữ VS Code và cài đặt
-RUN wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > packages.microsoft.gpg \
-    && install -o root -g root -m 644 packages.microsoft.gpg /usr/share/keyrings/ \
-    && sh -c 'echo "deb [arch=amd64 signed-by=/usr/share/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/vscode stable main" > /etc/apt/sources.list.d/vscode.list' \
-    && apt-get update \
-    && apt-get install -y code \
-    && rm -rf /var/lib/apt/lists/* \
-    && rm -f packages.microsoft.gpg
+# Cài đặt JupyterLab và các công cụ cần thiết
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    sudo && \
+    pip install --upgrade pip && \
+    pip install jupyterlab && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Tạo thư mục làm việc
-WORKDIR /workspace
+# Tạo một người dùng không root để sử dụng nếu cần
+ARG NB_USER=jupyter
+ARG NB_UID=1000
+RUN useradd -m -s /bin/bash -N -u $NB_UID $NB_USER && \
+    echo "$NB_USER ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/notebook && \
+    chmod 0440 /etc/sudoers.d/notebook
 
-# Thiết lập VS Code khởi chạy (cần X11 để hiển thị giao diện)
-CMD ["code", "--verbose", "--user-data-dir", "/workspace/.vscode", "--no-sandbox"]
+# Chuyển về thư mục làm việc
+WORKDIR /home/$NB_USER
+
+# Cấu hình mặc định để JupyterLab chạy trên mọi giao diện mạng
+ENV JUPYTER_TOKEN=''
+ENV JUPYTER_ENABLE_LAB=yes
+
+# Mở cổng 8888
+EXPOSE 8888
+
+# Chạy JupyterLab với quyền root
+CMD ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--allow-root"]
